@@ -101,30 +101,24 @@ int __cdecl main(void)
         return 1;
     }
 
-    // No longer need server socket
-    closesocket(ListenSocket);
-
     // Receive until the peer shuts down the connection
     do {
-
+        // Zeroing the buffers
         memset(recvbuf, 0x0, recvbuflen);
-
+        
         // Recebe os valores de setpoint e dos sensores
         iResult = recv(ClientSocket, recvbuf, recvbuflen, 0);
         if (iResult > 0) {
             recvbuf[iResult] = '\0';
             printf("Bytes received: %d\n", iResult);
             printf("Mensagem: %s \n", recvbuf);
+            printf("----------------------------------- \n");
 
             // Separa a string recebida criando um array de strings
             std::istringstream iss(recvbuf);
             std::vector<std::string> recvbuf_array;
             for (std::string s;iss >> s;) {
                 recvbuf_array.push_back(s);
-            }
-
-            for (int i = 0; i < recvbuf_array.size(); i++) {
-                std::cout << recvbuf_array[i] << std::endl;
             }
 
             // Variáveis de setpoint
@@ -266,7 +260,9 @@ int __cdecl main(void)
                 WSACleanup();
                 return 1;
             }
+            printf("----------------------------------- \n");
             printf("Bytes sent: %d\n", iSendResult);
+            printf("----------------------------------- \n");
         }
         else if (iResult == 0)
             printf("Connection closing...\n");
@@ -277,6 +273,9 @@ int __cdecl main(void)
             return 1;
         }
     } while (iResult > 0);
+
+    // No longer need server socket
+    closesocket(ListenSocket);
 
     // shutdown the connection since we're done
     iResult = shutdown(ClientSocket, SD_SEND);
