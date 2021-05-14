@@ -64,6 +64,10 @@ int AtuadorOxigenio = 0;
 int AtuadorPh = 0;
 int AtuadorNivel = 0;
 
+int liberaSensores = 1;
+int liberaControlador = 0;
+int liberaProcesso = 0;
+
 // Functions Prototypes ***************************************************
 
 void ErrorExit(LPSTR);
@@ -172,14 +176,14 @@ int enviaDados(std::string dados_para_enviar) {
 		return 1;
 	}
 
-	printf("Bytes Sent: %ld\n", iResult);
+	//printf("Bytes Sent: %ld\n", iResult);
 
 	// Receive until the peer closes the connection
 	iResult = recv(ConnectSocket, recvbuf, recvbuflen, 0);
 	if (iResult > 0) {
-		printf("Bytes received: %d \n", iResult);
+		//printf("Bytes received: %d \n", iResult);
 		recvbuf[iResult] = '\0';
-		printf("Mensagem: %s \n", recvbuf);
+		printf("Recebido: %s \n", recvbuf);
 
 		// Separa a string recebida criando um array de strings
 		std::istringstream iss(recvbuf);
@@ -406,17 +410,11 @@ void executeCommand(char* command, int commandSize)
 			{
 				std::cout << "Command not found!" << std::endl;
 			}
-
-
-			std::cout << ">>>";
-
 			memset(command, 0, commandSize);
 			flagExecuteCommand = 0;
 		}
-
 		std::this_thread::sleep_for(std::chrono::milliseconds(200));
 	}
-
 	std::cout << "Exit executeCommand!" << std::endl;
 }
 
@@ -429,47 +427,63 @@ void executeCommand(char* command, int commandSize)
 
 void Sensores() {
 	while (true) {
-		mutexHandler.lock();
-		// -> Temperatura *********************************************************
-		// A variável recebe um número gerado aleatoriamente entre 15 e 35 (°C)
-		sensorTemperatura = rand() % 21 + 15;
+		if (liberaSensores == 1) {
+			mutexHandler.lock();
+			// -> Temperatura *********************************************************
+			// A variável recebe um número gerado aleatoriamente entre 15 e 35 (°C)
+			sensorTemperatura = rand() % 21 + 15;
 
-		// -> Oxigênio ************************************************************
-		// A variável recebe um número gerado aleatoriamente entre 5 e 10 (mg/l)
-		sensorOxigenio = rand() % 6 + 5;
+			// -> Oxigênio ************************************************************
+			// A variável recebe um número gerado aleatoriamente entre 5 e 10 (mg/l)
+			sensorOxigenio = rand() % 6 + 5;
 
-		// -> Ph ******************************************************************
-		// A variável recebe um número gerado aleatoriamente entre 2 e 8
-		sensorPh = rand() % 7 + 2;
+			// -> Ph ******************************************************************
+			// A variável recebe um número gerado aleatoriamente entre 2 e 8
+			sensorPh = rand() % 7 + 2;
 
-		// -> Nível de água *******************************************************
-		// A variável recebe 0 ou 1, número gerado aleatoriamente
-		// Se nivel_alto = 1, indica que o nível máximo de água foi atingido
-		int nivel_alto = rand() % 2;
-
-		if (nivel_alto == 0) {
+			// -> Nível de água *******************************************************
 			// A variável recebe 0 ou 1, número gerado aleatoriamente
-			// Se nivel_baixo = 1, indica que o nível mínimo de água foi atingido
-			int nivel_baixo = rand() % 2;
+			// Se nivel_alto = 1, indica que o nível máximo de água foi atingido
+			int nivel_alto = rand() % 2;
 
-			if (nivel_baixo == 1) {
-				// nivel_alto = 0 e nivel_baixo = 1
-				// A água está dentro do nível estabelecido
-				sensorNivel = 0;
+			if (nivel_alto == 0) {
+				// A variável recebe 0 ou 1, número gerado aleatoriamente
+				// Se nivel_baixo = 1, indica que o nível mínimo de água foi atingido
+				int nivel_baixo = rand() % 2;
+
+				if (nivel_baixo == 1) {
+					// nivel_alto = 0 e nivel_baixo = 1
+					// A água está dentro do nível estabelecido
+					sensorNivel = 0;
+				}
+				else {
+					// nivel_alto = 0 e nivel_baixo = 0
+					// A água está abaixo do nível estabelecido
+					sensorNivel = 1;
+				}
 			}
 			else {
-				// nivel_alto = 0 e nivel_baixo = 0
-				// A água está abaixo do nível estabelecido
-				sensorNivel = 1;
+				// nivel_alto = 1
+				// A água está acima do nível estabelecido
+				sensorNivel = 2;
 			}
+			// Bloqueia a execução da função Sensores() até que Processo() libere novamente
+			liberaSensores = 0;
+			// Libera a execução da função ControladorCliente()
+			liberaControlador = 1;
+			// Bloqueia a execução da função Processo() até que ControladorCliente() libere novamente
+			liberaProcesso = 0;
+
+			printf("----------------- Sensores ------------------ \n");
+			std::cout << "-> sensorTemperatura = " << sensorTemperatura << std::endl;
+			std::cout << "-> sensorOxigenio = " << sensorOxigenio << std::endl;
+			std::cout << "-> sensorPh = " << sensorPh << std::endl;
+			std::cout << "-> sensorNivel = " << sensorNivel << std::endl;
+			printf("--------------------------------------------- \n");
+
+			mutexHandler.unlock();
+			std::this_thread::sleep_for(std::chrono::seconds(15));
 		}
-		else {
-			// nivel_alto = 1
-			// A água está acima do nível estabelecido
-			sensorNivel = 2;
-		}
-		mutexHandler.unlock();
-		std::this_thread::sleep_for(std::chrono::seconds(20));
 	}
 	std::cout << "Exit Sensores!" << std::endl;
 }
@@ -478,140 +492,157 @@ void Sensores() {
 
 void Processo() {
 	while (true) {
-		mutexHandler.lock();
-		int tempo_regulagem_temperatura = 0;
-		int tempo_regulagem_oxigenio = 0;
+		if (liberaProcesso == 1) {
+			mutexHandler.lock();
+			int tempo_regulagem_temperatura = 0;
+			int tempo_regulagem_oxigenio = 0;
 
-		printf("---------------- Processando ---------------- \n");
+			printf("---------------- Processando ---------------- \n");
 
-		// -> Temperatura *********************************************************
-		if (AtuadorTemperatura == 1) {
-			// Diferença entre temperatura medida e setpoint
-			int diferenca_temp = setpointTemperatura - sensorTemperatura;
-			//Contador do tempo
-			int cont_tempo = 0;
-			//Contador do temperatura
-			int cont_temperatura = diferenca_temp;
+			// -> Temperatura *********************************************************
+			if (AtuadorTemperatura == 1) {
+				// Diferença entre temperatura medida e setpoint
+				int diferenca_temp = setpointTemperatura - sensorTemperatura;
+				//Contador do tempo
+				int cont_tempo = 0;
+				//Contador do temperatura
+				int cont_temperatura = diferenca_temp;
 
-			do
-			{
-				// Considerando que em 5 min (simulando com 5s) o aquecedor pode aumentar a temperatura numa faixa de 2 - 6 °C
-				int variacao = rand() % 5 + 2;
+				do
+				{
+					// Considerando que em 5 min (simulando com 5s) o aquecedor pode aumentar a temperatura numa faixa de 2 - 6 °C
+					int variacao = rand() % 5 + 2;
 
-				cont_temperatura = cont_temperatura - variacao;
+					cont_temperatura = cont_temperatura - variacao;
 
-				cont_tempo++;
+					cont_tempo++;
 
-			} while (cont_temperatura > 0);
+				} while (cont_temperatura > 0);
 
-			// Tempo para atingir temperatura de setpoint
-			tempo_regulagem_temperatura = cont_tempo * 5;
+				// Tempo para atingir temperatura de setpoint
+				tempo_regulagem_temperatura = cont_tempo * 5;
 
-			// Valor da temperatura após tempo de regulagem
-			sensorTemperatura = sensorTemperatura + diferenca_temp;
+				// Valor da temperatura após tempo de regulagem
+				int novaTemperatura = sensorTemperatura + diferenca_temp;
 
-			// Nova temperatura exibida
-			std::cout << "-> Temperatura: " << sensorTemperatura << std::endl;
+				// Nova temperatura exibida
+				std::cout << "-> Temperatura: " << sensorTemperatura << " + " << diferenca_temp << " -> " << novaTemperatura << std::endl;
+
+				// Valor da temperatura após tempo de regulagem
+				sensorTemperatura = novaTemperatura;
+			}
+			else if (AtuadorTemperatura == 2) {
+				// Diferença entre temperatura medida e setpoint
+				int diferenca_temp = sensorTemperatura - setpointTemperatura;
+				//Contador do tempo
+				int cont_tempo = 0;
+				//Contador do temperatura
+				int cont_temperatura = diferenca_temp;
+
+				do
+				{
+					//Considerando que em 5 min (simulando com 5s) o resfriador pode diminuir a temperatura numa faixa de 2 - 4 °C
+					int variacao = rand() % 3 + 2;
+
+					cont_temperatura = cont_temperatura - variacao;
+
+					cont_tempo++;
+
+				} while (cont_temperatura > 0);
+
+				// Tempo para atingir temperatura de setpoint
+				int tempo_regulagem = cont_tempo * 5;
+
+				// Valor da temperatura após tempo de regulagem
+				int novaTemperatura = sensorTemperatura - diferenca_temp;
+
+				// Nova temperatura exibida
+				std::cout << "-> Temperatura: " << sensorTemperatura << " - " << diferenca_temp << " -> " << novaTemperatura << std::endl;
+
+				// Valor da temperatura após tempo de regulagem
+				sensorTemperatura = novaTemperatura;
+			}
+
+			// -> Oxigênio ************************************************************
+			if (AtuadorOxigenio == 1) {
+				// Diferença entre níveis de oxigênio medido e setpoint
+				double diferenca_oxigenio = setpointOxigenio - sensorOxigenio;
+				//Contador do tempo
+				int cont_tempo = 0;
+				//Contador do nível de oxigênio
+				double cont_oxigenio = diferenca_oxigenio;
+
+				do
+				{
+					// Considerando que em 5 min (simulando com 5s) o filtro pode aumentar o nível de oxigênio na água numa faixa de 1 - 2 (mg/l)
+					double variacao = rand() % 2 + 1;
+
+					cont_oxigenio = cont_oxigenio - variacao;
+
+					cont_tempo++;
+
+				} while (cont_oxigenio > 0);
+
+				// Tempo para atingir o nível de oxigênio do setpoint
+				tempo_regulagem_oxigenio = cont_tempo * 5;
+
+				// Valor do nível de oxigênio após tempo de regulagem
+				double novoOxigenio = sensorOxigenio + diferenca_oxigenio;
+
+				// Novo nível de oxigênio exibido
+				std::cout << "-> Oxigenio: " << sensorOxigenio << " + " << diferenca_oxigenio << " -> " << novoOxigenio << std::endl;
+
+				// Valor do nível de oxigênio após tempo de regulagem
+				sensorOxigenio = novoOxigenio;
+			}
+
+			// -> Ph ******************************************************************
+			if (AtuadorPh == 1) {
+				// Determinando o déficit de ph no aquário
+				double deficit_ph = setpointPhMin - sensorPh;
+
+				// Se a cada 2 ml de reagente o ph aumenta em 0.5
+				double reagente = (2 * deficit_ph) / 0.5;
+
+				// Exibe quanto do reagente deve ser adicionado para regular o Ph
+				std::cout << "-> Adicionando Reagente: " << reagente << "ml" << std::endl;
+			}
+			else if (AtuadorPh == 2) {
+				// Determiando o superávit de ph no aquário
+				double superavit_ph = sensorPh - setpointPhMax;
+
+				// Se a cada 3 ml de reagente o ph reduz em 0.75
+				double reagente = (3 * superavit_ph) / 0.75;
+
+				// Exibe quanto do reagente deve ser adicionado para regular o Ph
+				std::cout << "-> Adicionando Reagente: " << reagente << "ml" << std::endl;
+			}
+
+			// -> Nível de água *******************************************************
+
+			if (AtuadorNivel == 1) {
+				std::cout << "-> Enchendo aquario ate atingir o sensor baixo " << std::endl;
+			}
+			else if (AtuadorNivel == 2) {
+				std::cout << "-> Esvaziando aquario ate atingir o sensor alto " << std::endl;
+			}
+
+			printf("+++++++++++++++++++++++++++++++++++++++++++++ \n");
+
+			// Libera a execução da função Sensores()
+			liberaSensores = 1;
+			// Bloqueia a execução da função ControladorCliente() até que Sensores() libere novamente
+			liberaControlador = 0;
+			// Bloqueia a execução da função Processo() até que ControladorCliente() libere novamente
+			liberaProcesso = 0;
+
+			mutexHandler.unlock();
+
+			//int tempo_regulagem = ;
+			// Pausa a execução da Thread durante o tempo de regulagem
+			//std::this_thread::sleep_for(std::chrono::seconds(tempo_regulagem));
 		}
-		else if (AtuadorTemperatura == 2) {
-			// Diferença entre temperatura medida e setpoint
-			int diferenca_temp = sensorTemperatura - setpointTemperatura;
-			//Contador do tempo
-			int cont_tempo = 0;
-			//Contador do temperatura
-			int cont_temperatura = diferenca_temp;
-
-			do
-			{
-				//Considerando que em 5 min (simulando com 5s) o resfriador pode diminuir a temperatura numa faixa de 2 - 4 °C
-				int variacao = rand() % 3 + 2;
-
-				cont_temperatura = cont_temperatura - variacao;
-
-				cont_tempo++;
-
-			} while (cont_temperatura > 0);
-
-			// Tempo para atingir temperatura de setpoint
-			int tempo_regulagem = cont_tempo * 5;
-
-			// Valor da temperatura após tempo de regulagem
-			sensorTemperatura = sensorTemperatura - diferenca_temp;
-
-			// Nova temperatura exibida
-			std::cout << "-> Temperatura: " << sensorTemperatura << std::endl;
-		}
-
-		// -> Oxigênio ************************************************************
-		if (AtuadorOxigenio == 1) {
-			// Diferença entre níveis de oxigênio medido e setpoint
-			double diferenca_oxigenio = setpointOxigenio - sensorOxigenio;
-			//Contador do tempo
-			int cont_tempo = 0;
-			//Contador do nível de oxigênio
-			double cont_oxigenio = diferenca_oxigenio;
-
-			do
-			{
-				// Considerando que em 5 min (simulando com 5s) o filtro pode aumentar o nível de oxigênio na água numa faixa de 1 - 2 (mg/l)
-				double variacao = rand() % 2 + 1;
-
-				cont_oxigenio = cont_oxigenio - variacao;
-
-				cont_tempo++;
-
-			} while (cont_oxigenio > 0);
-
-			// Tempo para atingir o nível de oxigênio do setpoint
-			tempo_regulagem_oxigenio = cont_tempo * 5;
-
-			// Valor do nível de oxigênio após tempo de regulagem
-			sensorOxigenio = sensorOxigenio + diferenca_oxigenio;
-
-			// Novo nível de oxigênio exibido
-			std::cout << "-> Oxigenio: " << sensorOxigenio << std::endl;
-		}
-
-		// -> Ph ******************************************************************
-		if (AtuadorPh == 1) {
-			// Determinando o déficit de ph no aquário
-			double deficit_ph = setpointPhMin - sensorPh;
-
-			// Se a cada 2 ml de reagente o ph aumenta em 0.5
-			double reagente = (2 * deficit_ph) / 0.5;
-
-			// Exibe quanto do reagente deve ser adicionado para regular o Ph
-			std::cout << "-> Adicionando Reagente: " << reagente << "ml" << std::endl;
-		}
-		else if (AtuadorPh == 2) {
-			// Determiando o superávit de ph no aquário
-			double superavit_ph = sensorPh - setpointPhMax;
-
-			// Se a cada 3 ml de reagente o ph reduz em 0.75
-			double reagente = (3 * superavit_ph) / 0.75;
-
-			// Exibe quanto do reagente deve ser adicionado para regular o Ph
-			std::cout << "-> Adicionando Reagente: " << reagente << "ml" << std::endl;
-		}
-
-		// -> Nível de água *******************************************************
-		
-		if (AtuadorNivel == 1) {
-			std::cout << "-> Enchendo aquario ate atingir o sensor baixo " << std::endl;
-		}
-		else if (AtuadorNivel == 2) {
-			std::cout << "-> Esvaziando aquario ate atingir o sensor alto " << std::endl;
-		}
-		
-		printf("--------------------------------------------- \n");
-		mutexHandler.unlock();
-
-		//int tempo_regulagem = ;
-
-		// Pausa a execução da Thread durante o tempo de regulagem
-		//std::this_thread::sleep_for(std::chrono::seconds(tempo_regulagem));
-
-		std::this_thread::sleep_for(std::chrono::seconds(25));
+		std::this_thread::sleep_for(std::chrono::seconds(15));
 	}
 	std::cout << "Exit Processo!" << std::endl;
 }
@@ -620,17 +651,27 @@ void Processo() {
 
 void ControladorCliente() {
 	while (true) {
-		mutexHandler.lock();
+		if (liberaControlador == 1) {
+			mutexHandler.lock();
 
-		std::string dados_envio = formataDados();
+			std::string dados_envio = formataDados();
+			printf("------------ Controlador Cliente ------------ \n");
+			std::cout << "Enviado: " << dados_envio << std::endl;
 
-		std::cout << "mensagem:" << dados_envio << std::endl;
+			// Envia os valores de setpoint e dos sensores para ControladorServer 
+			enviaDados(dados_envio);
 
-		// Envia os valores de setpoint e dos sensores para ControladorServer 
-		enviaDados(dados_envio);
+			// Bloqueia a execução da função Sensores() até que Processo() libere novamente
+			liberaSensores = 0;
+			// Bloqueia a execução da função ControladorCliente() até que Sensores() libere novamente
+			liberaControlador = 0;
+			// Libera a execução da função Processo()
+			liberaProcesso = 1;
 
-		mutexHandler.unlock();
-		std::this_thread::sleep_for(std::chrono::seconds(30));
+			printf("--------------------------------------------- \n");
+			mutexHandler.unlock();
+		}
+		std::this_thread::sleep_for(std::chrono::seconds(15));
 	}
 	std::cout << "Exit ControladorCliente!" << std::endl;
 }
@@ -639,6 +680,8 @@ void ControladorCliente() {
 int main()
 {
 	char command[COMMAND_BUFF_SIZE] = "";
+
+	printf("+++++++++++++++++++++++++++++++++++++++++++++ \n");
 
 	appSetup();
 
@@ -687,8 +730,6 @@ void appSetup(void)
 	{
 		ErrorExit((LPSTR)"GetConsoleMode");
 	}
-
-	std::cout << ">>> ";
 }
 
 void appExit(void)

@@ -22,6 +22,8 @@
 
 int __cdecl main(void)
 {
+    printf("+++++++++++++++++++++++++++++++++++++++++ \n");
+
     WSADATA wsaData;
     int iResult;
 
@@ -103,9 +105,9 @@ int __cdecl main(void)
         iResult = recv(ClientSocket, recvbuf, recvbuflen, 0);
         if (iResult > 0) {
             recvbuf[iResult] = '\0';
-            printf("Bytes received: %d\n", iResult);
-            printf("Mensagem: %s \n", recvbuf);
-            printf("----------------------------------- \n");
+            //printf("Bytes received: %d\n", iResult);
+            printf("Recebido: %s \n", recvbuf);
+            printf("----------------------------------------- \n");
 
             // Separa a string recebida criando um array de strings
             std::istringstream iss(recvbuf);
@@ -253,9 +255,10 @@ int __cdecl main(void)
                 WSACleanup();
                 return 1;
             }
-            printf("----------------------------------- \n");
-            printf("Bytes sent: %d\n", iSendResult);
-            printf("----------------------------------- \n");
+            printf("----------------------------------------- \n");
+            //printf("Bytes sent: %d\n", iSendResult);
+            printf("Enviado: %s \n", dados_char);
+            printf("+++++++++++++++++++++++++++++++++++++++++ \n");
         }
         else if (iResult == 0)
             printf("Connection closing...\n");
