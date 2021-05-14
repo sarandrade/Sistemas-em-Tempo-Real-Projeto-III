@@ -182,6 +182,7 @@ int enviaDados(std::string dados_para_enviar) {
 	if (iResult > 0) {
 		printf("Bytes received: %d \n", iResult);
 		recvbuf[iResult] = '\0';
+		printf("Mensagem: %s \n", recvbuf);
 
 		// Separa a string recebida criando um array de strings
 		std::istringstream iss(recvbuf);
@@ -604,10 +605,10 @@ void Processo() {
 
 		// -> Nível de água *******************************************************
 		if (AtuadorValvulaEsvaziar) {
-			std::cout << "-> Ezvaziando aquario até atingir o sensor alto " << std::endl;
+			std::cout << "-> Esvaziando aquario ate atingir o sensor alto " << std::endl;
 		}
 		if (AtuadorValvulaEncher) {
-			std::cout << "-> Enchendo aquario até atingir o sensor baixo " << std::endl;
+			std::cout << "-> Enchendo aquario ate atingir o sensor baixo " << std::endl;
 		}
 		printf("--------------------------------------------- \n");
 		mutexHandler.unlock();
@@ -625,7 +626,6 @@ void ControladorCliente() {
 		std::string dados_envio = formataDados();
 
 		std::cout << "mensagem:" << dados_envio << std::endl;
-		std::cout << "mensagem:" << dados_envio.size() << std::endl;
 
 		// Envia os valores de setpoint e dos sensores para ControladorServer 
 		enviaDados(dados_envio);
