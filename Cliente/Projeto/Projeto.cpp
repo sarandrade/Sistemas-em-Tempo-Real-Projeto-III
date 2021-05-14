@@ -484,11 +484,6 @@ void Processo() {
 
 		printf("---------------- Processando ---------------- \n");
 
-		int AtuadorTemperatura = 0;
-		int AtuadorOxigenio = 0;
-		int AtuadorPh = 0;
-		int AtuadorNivel = 0;
-
 		// -> Temperatura *********************************************************
 		if (AtuadorTemperatura == 1) {
 			// Diferença entre temperatura medida e setpoint
@@ -511,9 +506,6 @@ void Processo() {
 
 			// Tempo para atingir temperatura de setpoint
 			tempo_regulagem_temperatura = cont_tempo * 5;
-
-			// Pausa a execução da Thread durante o tempo de regulagem
-			std::this_thread::sleep_for(std::chrono::seconds(tempo_regulagem_temperatura));
 
 			// Valor da temperatura após tempo de regulagem
 			sensorTemperatura = sensorTemperatura + diferenca_temp;
@@ -543,9 +535,6 @@ void Processo() {
 			// Tempo para atingir temperatura de setpoint
 			int tempo_regulagem = cont_tempo * 5;
 
-			// Pausa a execução da Thread durante o tempo de regulagem
-			std::this_thread::sleep_for(std::chrono::seconds(tempo_regulagem));
-
 			// Valor da temperatura após tempo de regulagem
 			sensorTemperatura = sensorTemperatura - diferenca_temp;
 
@@ -574,13 +563,7 @@ void Processo() {
 			} while (cont_oxigenio > 0);
 
 			// Tempo para atingir o nível de oxigênio do setpoint
-			tempo_regulagem_oxigenio = cont_tempo * 5 - tempo_regulagem_temperatura;
-
-			// Se o tempo de regulagem da temperatura não for suficiente para regular o oxigênio, tempo_regulagem_oxigenio será maior que zero
-			if (tempo_regulagem_oxigenio > 0) {
-				// Pausa a execução da Thread durante o tempo de regulagem
-				std::this_thread::sleep_for(std::chrono::seconds(tempo_regulagem_oxigenio));
-			}
+			tempo_regulagem_oxigenio = cont_tempo * 5;
 
 			// Valor do nível de oxigênio após tempo de regulagem
 			sensorOxigenio = sensorOxigenio + diferenca_oxigenio;
@@ -622,6 +605,12 @@ void Processo() {
 		
 		printf("--------------------------------------------- \n");
 		mutexHandler.unlock();
+
+		//int tempo_regulagem = ;
+
+		// Pausa a execução da Thread durante o tempo de regulagem
+		//std::this_thread::sleep_for(std::chrono::seconds(tempo_regulagem));
+
 		std::this_thread::sleep_for(std::chrono::seconds(25));
 	}
 	std::cout << "Exit Processo!" << std::endl;
