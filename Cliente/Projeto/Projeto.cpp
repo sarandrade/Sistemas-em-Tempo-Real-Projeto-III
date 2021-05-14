@@ -59,13 +59,10 @@ double sensorOxigenio = 0;
 double sensorPh = 0;
 int sensorNivel = 0;
 
-int AtuadorAquecedor = 0;
-int AtuadorResfriador = 0;
-int AtuadorFiltro = 0;
-int AtuadorValvulaEncher = 0;
-int AtuadorValvulaEsvaziar = 0;
-int AtuadorAumentaPh = 0;
-int AtuadorReduzPh = 0;
+int AtuadorTemperatura = 0;
+int AtuadorOxigenio = 0;
+int AtuadorPh = 0;
+int AtuadorNivel = 0;
 
 // Functions Prototypes ***************************************************
 
@@ -105,7 +102,7 @@ std::string formataDados() {
 	return dados_envio;
 }
 
-int configuraConexao() {
+void configuraConexao() {
 	WSADATA wsaData;
 	struct addrinfo* result = NULL,
 		* ptr = NULL,
@@ -115,7 +112,7 @@ int configuraConexao() {
 	iResult = WSAStartup(MAKEWORD(2, 2), &wsaData);
 	if (iResult != 0) {
 		printf("WSAStartup failed with error: %d\n", iResult);
-		return 1;
+		//return 1;
 	}
 
 	ZeroMemory(&hints, sizeof(hints));
@@ -128,7 +125,7 @@ int configuraConexao() {
 	if (iResult != 0) {
 		printf("getaddrinfo failed with error: %d\n", iResult);
 		WSACleanup();
-		return 1;
+		//return 1;
 	}
 
 	// Attempt to connect to an address until one succeeds
@@ -140,7 +137,7 @@ int configuraConexao() {
 		if (ConnectSocket == INVALID_SOCKET) {
 			printf("socket failed with error: %ld\n", WSAGetLastError());
 			WSACleanup();
-			return 1;
+			//return 1;
 		}
 
 		// Connect to server.
@@ -158,7 +155,7 @@ int configuraConexao() {
 	if (ConnectSocket == INVALID_SOCKET) {
 		printf("Unable to connect to server!\n");
 		WSACleanup();
-		return 1;
+		//return 1;
 	}
 }
 
@@ -192,13 +189,10 @@ int enviaDados(std::string dados_para_enviar) {
 		}
 
 		// Tranformação das strings dos atuadores recebidas para valores int
-		std::istringstream(recvbuf_array[0]) >> AtuadorAquecedor;
-		std::istringstream(recvbuf_array[1]) >> AtuadorResfriador;
-		std::istringstream(recvbuf_array[2]) >> AtuadorFiltro;
-		std::istringstream(recvbuf_array[3]) >> AtuadorValvulaEncher;
-		std::istringstream(recvbuf_array[3]) >> AtuadorValvulaEsvaziar;
-		std::istringstream(recvbuf_array[3]) >> AtuadorAumentaPh;
-		std::istringstream(recvbuf_array[3]) >> AtuadorReduzPh;
+		std::istringstream(recvbuf_array[0]) >> AtuadorTemperatura;
+		std::istringstream(recvbuf_array[1]) >> AtuadorOxigenio;
+		std::istringstream(recvbuf_array[2]) >> AtuadorPh;
+		std::istringstream(recvbuf_array[3]) >> AtuadorNivel;
 	}
 	else if (iResult == 0)
 		printf("Connection closed\n");
@@ -208,14 +202,14 @@ int enviaDados(std::string dados_para_enviar) {
 	return 0;
 }
 
-int encerraConexao() {
+void encerraConexao() {
 	// shutdown the connection since no more data will be sent
 	int iResult = shutdown(ConnectSocket, SD_SEND);
 	if (iResult == SOCKET_ERROR) {
 		printf("shutdown failed with error: %d\n", WSAGetLastError());
 		closesocket(ConnectSocket);
 		WSACleanup();
-		return 1;
+		//return 1;
 	}
 
 	// cleanup
@@ -369,22 +363,31 @@ void executeCommand(char* command, int commandSize)
 				std::cout << "\t- sensorOxigenio: " << sensorOxigenio << std::endl;
 				std::cout << "\t- sensorPh: " << sensorPh << std::endl;
 				std::cout << "\t- sensorNivel: " << sensorNivel << std::endl;
-				std::cout << "\t   -> 1 - Dentro dos limites " << std::endl;
-				std::cout << "\t   -> 2 - Abaixo do limite minimo" << std::endl;
-				std::cout << "\t   -> 3 - Acima do limite maximo" << std::endl;
+				std::cout << "\t   -> 0 - Dentro dos limites " << std::endl;
+				std::cout << "\t   -> 1 - Abaixo do limite minimo" << std::endl;
+				std::cout << "\t   -> 2 - Acima do limite maximo" << std::endl;
 				std::cout << std::endl;
 
 				std::cout << "Atuadores ------------------------------ " << std::endl;
-				std::cout << "\t   -> 0 - Atuador desativado " << std::endl;
-				std::cout << "\t   -> 1 - Atuador ativado" << std::endl;
+				std::cout << "\t- AtuadorTemperatura : " << AtuadorTemperatura << std::endl;
+				std::cout << "\t   -> 0 - Atuadores desativados " << std::endl;
+				std::cout << "\t   -> 1 - Aquecedor ativado" << std::endl;
+				std::cout << "\t   -> 2 - Resfriador ativado" << std::endl;
 				std::cout << "\t   ----------------------------- " << std::endl;
-				std::cout << "\t- AtuadorAquecedor : " << AtuadorAquecedor << std::endl;
-				std::cout << "\t- AtuadorResfriador : " << AtuadorResfriador << std::endl;
-				std::cout << "\t- AtuadorFiltro : " << AtuadorFiltro << std::endl;
-				std::cout << "\t- AtuadorValvulaEncher : " << AtuadorValvulaEncher << std::endl;
-				std::cout << "\t- AtuadorValvulaEsvaziar : " << AtuadorValvulaEsvaziar << std::endl;
-				std::cout << "\t- AtuadorAumentaPh : " << AtuadorAumentaPh << std::endl;
-				std::cout << "\t- AtuadorReduzPh  : " << AtuadorReduzPh << std::endl;
+				std::cout << "\t- AtuadorOxigenio : " << AtuadorOxigenio << std::endl;
+				std::cout << "\t   -> 0 - Atuador desativado " << std::endl;
+				std::cout << "\t   -> 1 - Filtro ativado" << std::endl;
+				std::cout << "\t   ----------------------------- " << std::endl;
+				std::cout << "\t- AtuadorPh : " << AtuadorPh << std::endl;
+				std::cout << "\t   -> 0 - Atuadores desativados " << std::endl;
+				std::cout << "\t   -> 1 - Aumenta ph" << std::endl;
+				std::cout << "\t   -> 2 - Reduz ph" << std::endl;
+				std::cout << "\t   ----------------------------- " << std::endl;
+				std::cout << "\t- AtuadorNivel : " << AtuadorNivel << std::endl;
+				std::cout << "\t   -> 0 - Atuadores desativados " << std::endl;
+				std::cout << "\t   -> 1 - Valvula de encher ativada" << std::endl;
+				std::cout << "\t   -> 2 - Valvula de esvaziar ativada" << std::endl;
+				std::cout << "\t   ----------------------------- " << std::endl;
 				std::cout << std::endl;
 			}
 			else if (!strcmp(command, "clear"))
@@ -452,18 +455,18 @@ void Sensores() {
 			if (nivel_baixo == 1) {
 				// nivel_alto = 0 e nivel_baixo = 1
 				// A água está dentro do nível estabelecido
-				sensorNivel = 1;
+				sensorNivel = 0;
 			}
 			else {
 				// nivel_alto = 0 e nivel_baixo = 0
 				// A água está abaixo do nível estabelecido
-				sensorNivel = 2;
+				sensorNivel = 1;
 			}
 		}
 		else {
 			// nivel_alto = 1
 			// A água está acima do nível estabelecido
-			sensorNivel = 3;
+			sensorNivel = 2;
 		}
 		mutexHandler.unlock();
 		std::this_thread::sleep_for(std::chrono::seconds(20));
@@ -481,8 +484,13 @@ void Processo() {
 
 		printf("---------------- Processando ---------------- \n");
 
+		int AtuadorTemperatura = 0;
+		int AtuadorOxigenio = 0;
+		int AtuadorPh = 0;
+		int AtuadorNivel = 0;
+
 		// -> Temperatura *********************************************************
-		if (AtuadorAquecedor) {
+		if (AtuadorTemperatura == 1) {
 			// Diferença entre temperatura medida e setpoint
 			int diferenca_temp = setpointTemperatura - sensorTemperatura;
 			//Contador do tempo
@@ -513,7 +521,7 @@ void Processo() {
 			// Nova temperatura exibida
 			std::cout << "-> Temperatura: " << sensorTemperatura << std::endl;
 		}
-		if (AtuadorResfriador) {
+		else if (AtuadorTemperatura == 2) {
 			// Diferença entre temperatura medida e setpoint
 			int diferenca_temp = sensorTemperatura - setpointTemperatura;
 			//Contador do tempo
@@ -546,13 +554,13 @@ void Processo() {
 		}
 
 		// -> Oxigênio ************************************************************
-		if (AtuadorFiltro) {
+		if (AtuadorOxigenio == 1) {
 			// Diferença entre níveis de oxigênio medido e setpoint
-			int diferenca_oxigenio = setpointOxigenio - sensorOxigenio;
+			double diferenca_oxigenio = setpointOxigenio - sensorOxigenio;
 			//Contador do tempo
 			int cont_tempo = 0;
 			//Contador do nível de oxigênio
-			int cont_oxigenio = diferenca_oxigenio;
+			double cont_oxigenio = diferenca_oxigenio;
 
 			do
 			{
@@ -582,7 +590,7 @@ void Processo() {
 		}
 
 		// -> Ph ******************************************************************
-		if (AtuadorAumentaPh) {
+		if (AtuadorPh == 1) {
 			// Determinando o déficit de ph no aquário
 			double deficit_ph = setpointPhMin - sensorPh;
 
@@ -592,7 +600,7 @@ void Processo() {
 			// Exibe quanto do reagente deve ser adicionado para regular o Ph
 			std::cout << "-> Adicionando Reagente: " << reagente << "ml" << std::endl;
 		}
-		if (AtuadorReduzPh) {
+		else if (AtuadorPh == 2) {
 			// Determiando o superávit de ph no aquário
 			double superavit_ph = sensorPh - setpointPhMax;
 
@@ -604,12 +612,14 @@ void Processo() {
 		}
 
 		// -> Nível de água *******************************************************
-		if (AtuadorValvulaEsvaziar) {
-			std::cout << "-> Esvaziando aquario ate atingir o sensor alto " << std::endl;
-		}
-		if (AtuadorValvulaEncher) {
+		
+		if (AtuadorNivel == 1) {
 			std::cout << "-> Enchendo aquario ate atingir o sensor baixo " << std::endl;
 		}
+		else if (AtuadorNivel == 2) {
+			std::cout << "-> Esvaziando aquario ate atingir o sensor alto " << std::endl;
+		}
+		
 		printf("--------------------------------------------- \n");
 		mutexHandler.unlock();
 		std::this_thread::sleep_for(std::chrono::seconds(25));

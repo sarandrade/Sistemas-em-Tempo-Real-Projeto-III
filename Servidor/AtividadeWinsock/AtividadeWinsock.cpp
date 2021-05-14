@@ -24,13 +24,6 @@ int __cdecl main(void)
 {
     WSADATA wsaData;
     int iResult;
-    int AtuadorAquecedor = 0;
-    int AtuadorResfriador = 0;
-    int AtuadorFiltro = 0;
-    int AtuadorValvulaEncher = 0;
-    int AtuadorValvulaEsvaziar = 0;
-    int AtuadorAumentaPh = 0;
-    int AtuadorReduzPh = 0;
 
     SOCKET ListenSocket = INVALID_SOCKET;
     SOCKET ClientSocket = INVALID_SOCKET;
@@ -145,49 +138,54 @@ int __cdecl main(void)
             std::istringstream(recvbuf_array[6]) >> sensorPh;
             std::istringstream(recvbuf_array[7]) >> sensorNivel;
 
+            // Inicializando e zerando atuadores
+            int AtuadorTemperatura = 0;
+            int AtuadorOxigenio = 0;
+            int AtuadorPh = 0;
+            int AtuadorNivel = 0;
+
             // Calculando quais atuadores devem ser acionados
             // -> Temperatura *********************************************************
             if (sensorTemperatura == setpointTemperatura) {
                 // Se a temperatura medida for igual ao setpoint...
                 std::cout << "-> Temperatura perfeita!!" << std::endl;
 
-                // Desliga o aquecedor ou resfriador
-                AtuadorAquecedor = 0;
-                AtuadorResfriador = 0;
-            }
-            else if (sensorTemperatura > setpointTemperatura) {
-                // Se a temperatura medida for maior que o setpoint...
-                std::cout << "-> Diminuindo a temperatura..." << std::endl;
-                std::cout << "\t(" << setpointTemperatura << " <- " << sensorTemperatura << ")" << std::endl;
-
-                // Aciona o resfriador
-                AtuadorResfriador = 1;
+                // Desliga o aquecedor e o resfriador
+                AtuadorTemperatura = 0;
             }
             else if (sensorTemperatura < setpointTemperatura) {
                 // Se a temperatura medida for menor que o setpoint...
-                std::cout << "-> Aumentando a temperatura..." << std::endl;
+                std::cout << "-> Aumentar a temperatura" << std::endl;
                 std::cout << "\t(" << sensorTemperatura << " -> " << setpointTemperatura << ")" << std::endl;
 
                 // Aciona o aquecedor
-                AtuadorAquecedor = 1;
+                AtuadorTemperatura = 1;
             }
+            else if (sensorTemperatura > setpointTemperatura) {
+                // Se a temperatura medida for maior que o setpoint...
+                std::cout << "-> Diminuir a temperatura" << std::endl;
+                std::cout << "\t(" << setpointTemperatura << " <- " << sensorTemperatura << ")" << std::endl;
 
+                // Aciona o resfriador
+                AtuadorTemperatura = 2;
+            }
+            
             // -> Oxigênio ************************************************************
             if (sensorOxigenio >= setpointOxigenio) {
                 // Se o nível de oxigênio medido for maior ou igual ao setpoint...
                 std::cout << "-> Nivel de Oxigenio perfeito!!" << std::endl;
 
                 // Desliga o filtro de água
-                AtuadorFiltro = 0;
+                AtuadorOxigenio = 0;
             }
             else if (sensorOxigenio < setpointOxigenio) {
                 // Se o nível de oxigênio medido for menor ao setpoint...
-                std::cout << "-> Aumentando nivel de oxigenio da agua..." << std::endl;
+                std::cout << "-> Aumentar nivel de oxigenio da agua" << std::endl;
                 // Exibe o valor obtido pelo sensor e o setpoint
                 std::cout << "\t(" << sensorOxigenio << " -> " << setpointOxigenio << ")" << std::endl;
 
                 // Aciona o filtro de água
-                AtuadorFiltro = 1;
+                AtuadorOxigenio = 1;
             }
 
             // -> Ph ******************************************************************
@@ -196,60 +194,55 @@ int __cdecl main(void)
                 std::cout << "-> Nivel de Ph perfeito!!" << std::endl;
 
                 // Não adiciona nenhum reagente
-                AtuadorAumentaPh = 0;
-                AtuadorReduzPh = 0;
+                AtuadorPh = 0;
             }
             else if (sensorPh < setpointPhMin) {
                 // Se o ph estiver abaixo do setpoint mínimo...
-                std::cout << "-> Adicionando reagente que aumenta ph..." << std::endl;
+                std::cout << "-> Adicionar reagente que aumenta ph" << std::endl;
 
                 // Adiciona reagente que aumenta o ph da água
-                AtuadorAumentaPh = 1;
+                AtuadorPh = 1;
             }
             else if (sensorPh > setpointPhMax) {
                 // Se o ph estiver acima do setpoint máximo...
-                std::cout << "-> Adicionando reagente que reduz ph..." << std::endl;
+                std::cout << "-> Adicionar reagente que reduz ph" << std::endl;
 
                 // Adiciona reagente que reduz o ph da água
-                AtuadorReduzPh = 1;
+                AtuadorPh = 2;
             }
 
             // -> Nível de água *******************************************************
-            if (sensorNivel == 1) {
+            if (sensorNivel == 0) {
                 // Se sensorNivel = 0, nível dentro dos limites
                 std::cout << "-> Nivel da agua perfeito!!" << std::endl;
 
                 // Desativa as válvulas de encher e esvaziar o aquário 
-                AtuadorValvulaEncher = 0;
-                AtuadorValvulaEsvaziar = 0;
+                AtuadorNivel = 0;
             }
-            else if (sensorNivel == 2) {
+            else if (sensorNivel == 1) {
                 // Se sensorNivel = 1, nível abaixo do limite mínimo
-                std::cout << "-> Enchendo aquario..." << std::endl;
+                std::cout << "-> Encher aquario" << std::endl;
 
                 // Ativa a válvula de encher o aquário 
-                AtuadorValvulaEncher = 1;
+                AtuadorNivel = 1;
             }
-            else if (sensorNivel == 3) {
+            else if (sensorNivel == 2) {
                 // Se sensorNivel = 2, nível acima do limite máximo
-                std::cout << "-> Esvaziando aquario..." << std::endl;
+                std::cout << "-> Esvaziar aquario" << std::endl;
 
                 // Ativa a válvula de esvaziar o aquário 
-                AtuadorValvulaEsvaziar = 1;
+                AtuadorNivel = 2;
             }
 
             // Formatando mensagem para enviar ao cliente
             // Transforma as variáveis int em string
-            std::string AtAquec = std::to_string(AtuadorAquecedor);
-            std::string AtResf = std::to_string(AtuadorResfriador);
-            std::string AtFiltro = std::to_string(AtuadorFiltro);
-            std::string AtEncher = std::to_string(AtuadorValvulaEncher);
-            std::string AtEsvaziar = std::to_string(AtuadorValvulaEsvaziar);
-            std::string AtAumPh = std::to_string(AtuadorAumentaPh);
-            std::string AtRedPh = std::to_string(AtuadorReduzPh);
+            std::string AtTemp = std::to_string(AtuadorTemperatura);
+            std::string AtOxi = std::to_string(AtuadorOxigenio);
+            std::string AtPh = std::to_string(AtuadorPh);
+            std::string AtNivel = std::to_string(AtuadorNivel);
 
             // Concatena os valores de todas as variáveis acima em uma só string (separados por espaço)
-            std::string dados_envio = AtAquec + " " + AtResf + " " + AtFiltro + " " + AtEncher + " " + AtEsvaziar + " " + AtAumPh + " " + AtRedPh;
+            std::string dados_envio = AtTemp + " " + AtOxi + " " + AtPh + " " + AtNivel;
             const char* dados_char = &dados_envio[0];
 
             // Echo the buffer back to the sender
