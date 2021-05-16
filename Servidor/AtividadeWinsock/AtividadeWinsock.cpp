@@ -167,7 +167,7 @@ int transportMessage(SOCKET ClientSocket) {
     char recvbuf[DEFAULT_BUFLEN];
     int recvbuflen = DEFAULT_BUFLEN;
     int iResult = 0;
-    
+
     // Receive until the peer shuts down the connection
     do {
         // Zeroing the buffers
@@ -178,6 +178,8 @@ int transportMessage(SOCKET ClientSocket) {
         if (iResult > 0) {
             recvbuf[iResult] = '\0';
             //printf("Bytes received: %d\n", iResult);
+            printf("---------- Cliente Socket: %d ---------- \n", ClientSocket);
+            printf("----------------------------------------- \n");
             printf("Recebido: %s \n", recvbuf);
             printf("----------------------------------------- \n");
 
@@ -200,9 +202,10 @@ int transportMessage(SOCKET ClientSocket) {
         else if (iResult == 0)
             printf("Connection closing...\n");
         else {
-            printf("recv failed with error: %d\n", WSAGetLastError());
+            printf("xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx \n");
+            printf("------- Cliente desconectado: %d ------- \n", ClientSocket);
+            printf("xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx \n");
             closesocket(ClientSocket);
-            WSACleanup();
             return 1;
         }
     } while (iResult > 0);
