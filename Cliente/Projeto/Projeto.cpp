@@ -441,11 +441,11 @@ void Sensores() {
 
 			// -> Oxigênio ************************************************************
 			// A variável recebe um número gerado aleatoriamente entre 5 e 10 (mg/l)
-			sensorOxigenio = rand() % 6 + 5;
+			sensorOxigenio = (rand() % 60 + (double)50) / 10;
 
 			// -> Ph ******************************************************************
-			// A variável recebe um número gerado aleatoriamente entre 2 e 8
-			sensorPh = rand() % 7 + 2;
+			// A variável recebe um número gerado aleatoriamente entre 6 e 9
+			sensorPh = (rand() % 31 + (double)60)/10;
 
 			// -> Nível de água *******************************************************
 			// A variável recebe 0 ou 1, número gerado aleatoriamente
