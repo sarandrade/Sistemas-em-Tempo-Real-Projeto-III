@@ -64,9 +64,12 @@ int AtuadorOxigenio = 0;
 int AtuadorPh = 0;
 int AtuadorNivel = 0;
 
-int liberaSensores = 1;
+int liberaSensores = 4;
 int liberaControlador = 0;
-int liberaProcesso = 0;
+int liberaProcessoTemp = 0;
+int liberaProcessoOxig = 0;
+int liberaProcessoPh = 0;
+int liberaProcessoNivel = 0;
 
 // Functions Prototypes ***************************************************
 
@@ -165,6 +168,8 @@ void configuraConexao() {
 
 int enviaDados(std::string dados_para_enviar) {
 
+	printf("------------ Controlador Cliente ------------ \n");
+	std::cout << "Enviado: " << dados_para_enviar << std::endl;
 	const char* dados_char = &dados_para_enviar[0];
 
 	// Send an initial buffer
@@ -427,8 +432,9 @@ void executeCommand(char* command, int commandSize)
 
 void Sensores() {
 	while (true) {
-		if (liberaSensores == 1) {
+		if (liberaSensores == 4) {
 			mutexHandler.lock();
+			printf("+++++++++++++++++++++++++++++++++++++++++++++ \n");
 			// -> Temperatura *********************************************************
 			// A variável recebe um número gerado aleatoriamente entre 15 e 35 (°C)
 			sensorTemperatura = rand() % 21 + 15;
@@ -467,12 +473,15 @@ void Sensores() {
 				// A água está acima do nível estabelecido
 				sensorNivel = 2;
 			}
-			// Bloqueia a execução da função Sensores() até que Processo() libere novamente
+			// Bloqueia a execução da função Sensores até que as funções de Processo liberem novamente
 			liberaSensores = 0;
-			// Libera a execução da função ControladorCliente()
+			// Libera a execução da função ControladorCliente
 			liberaControlador = 1;
-			// Bloqueia a execução da função Processo() até que ControladorCliente() libere novamente
-			liberaProcesso = 0;
+			// Bloqueia a execução das funções de Processo até que ControladorCliente libere novamente
+			liberaProcessoTemp = 0;
+			liberaProcessoOxig = 0;
+			liberaProcessoPh = 0;
+			liberaProcessoNivel = 0;
 
 			printf("----------------- Sensores ------------------ \n");
 			std::cout << "-> sensorTemperatura = " << sensorTemperatura << std::endl;
@@ -488,16 +497,12 @@ void Sensores() {
 	std::cout << "Exit Sensores!" << std::endl;
 }
 
-// Processo ***************************************************************
+// Processos **************************************************************
 
-void Processo() {
+void ProcessoTemperatura() {
 	while (true) {
-		if (liberaProcesso == 1) {
-			mutexHandler.lock();
+		if (liberaProcessoTemp == 1) {
 			int tempo_regulagem_temperatura = 0;
-			int tempo_regulagem_oxigenio = 0;
-
-			printf("---------------- Processando ---------------- \n");
 
 			// -> Temperatura *********************************************************
 			if (AtuadorTemperatura == 1) {
@@ -525,8 +530,10 @@ void Processo() {
 				// Valor da temperatura após tempo de regulagem
 				int novaTemperatura = sensorTemperatura + diferenca_temp;
 
+				mutexHandler.lock();
 				// Nova temperatura exibida
 				std::cout << "-> Temperatura: " << sensorTemperatura << " + " << diferenca_temp << " -> " << novaTemperatura << std::endl;
+				mutexHandler.unlock();
 
 				// Valor da temperatura após tempo de regulagem
 				sensorTemperatura = novaTemperatura;
@@ -556,12 +563,32 @@ void Processo() {
 				// Valor da temperatura após tempo de regulagem
 				int novaTemperatura = sensorTemperatura - diferenca_temp;
 
+				mutexHandler.lock();
 				// Nova temperatura exibida
 				std::cout << "-> Temperatura: " << sensorTemperatura << " - " << diferenca_temp << " -> " << novaTemperatura << std::endl;
+				mutexHandler.unlock();
 
 				// Valor da temperatura após tempo de regulagem
 				sensorTemperatura = novaTemperatura;
 			}
+
+			// Libera a execução da função Sensores()
+			liberaSensores++;
+			// Bloqueia a execução da função ControladorCliente() até que Sensores() libere novamente
+			liberaControlador = 0;
+			// Bloqueia a execução da função ProcessoTemperatura() até que ControladorCliente() libere novamente
+			liberaProcessoTemp = 0;
+
+			std::this_thread::sleep_for(std::chrono::seconds(tempo_regulagem_temperatura));
+		}
+	}
+	std::cout << "Exit ProcessoTemperatura!" << std::endl;
+}
+
+void ProcessoOxigenio() {
+	while (true) {
+		if (liberaProcessoOxig == 1) {
+			int tempo_regulagem_oxigenio = 0;
 
 			// -> Oxigênio ************************************************************
 			if (AtuadorOxigenio == 1) {
@@ -589,12 +616,32 @@ void Processo() {
 				// Valor do nível de oxigênio após tempo de regulagem
 				double novoOxigenio = sensorOxigenio + diferenca_oxigenio;
 
+				mutexHandler.lock();
 				// Novo nível de oxigênio exibido
 				std::cout << "-> Oxigenio: " << sensorOxigenio << " + " << diferenca_oxigenio << " -> " << novoOxigenio << std::endl;
+				mutexHandler.unlock();
 
 				// Valor do nível de oxigênio após tempo de regulagem
 				sensorOxigenio = novoOxigenio;
 			}
+
+			// Libera a execução da função Sensores()
+			liberaSensores++;
+			// Bloqueia a execução da função ControladorCliente() até que Sensores() libere novamente
+			liberaControlador = 0;
+			// Bloqueia a execução da função ProcessoOxigenio() até que ControladorCliente() libere novamente
+			liberaProcessoOxig = 0;
+
+			std::this_thread::sleep_for(std::chrono::seconds(tempo_regulagem_oxigenio));
+		}
+	}
+	std::cout << "Exit ProcessoOxigenio!" << std::endl;
+}
+
+void ProcessoPh() {
+	while (true) {
+		if (liberaProcessoPh == 1) {
+			int tempo_regulagem_ph = 10;
 
 			// -> Ph ******************************************************************
 			if (AtuadorPh == 1) {
@@ -604,8 +651,10 @@ void Processo() {
 				// Se a cada 2 ml de reagente o ph aumenta em 0.5
 				double reagente = (2 * deficit_ph) / 0.5;
 
+				mutexHandler.lock();
 				// Exibe quanto do reagente deve ser adicionado para regular o Ph
 				std::cout << "-> Adicionando Reagente: " << reagente << "ml" << std::endl;
+				mutexHandler.unlock();
 			}
 			else if (AtuadorPh == 2) {
 				// Determiando o superávit de ph no aquário
@@ -614,37 +663,53 @@ void Processo() {
 				// Se a cada 3 ml de reagente o ph reduz em 0.75
 				double reagente = (3 * superavit_ph) / 0.75;
 
+				mutexHandler.lock();
 				// Exibe quanto do reagente deve ser adicionado para regular o Ph
 				std::cout << "-> Adicionando Reagente: " << reagente << "ml" << std::endl;
+				mutexHandler.unlock();
 			}
-
-			// -> Nível de água *******************************************************
-
-			if (AtuadorNivel == 1) {
-				std::cout << "-> Enchendo aquario ate atingir o sensor baixo " << std::endl;
-			}
-			else if (AtuadorNivel == 2) {
-				std::cout << "-> Esvaziando aquario ate atingir o sensor alto " << std::endl;
-			}
-
-			printf("+++++++++++++++++++++++++++++++++++++++++++++ \n");
 
 			// Libera a execução da função Sensores()
-			liberaSensores = 1;
+			liberaSensores++;
 			// Bloqueia a execução da função ControladorCliente() até que Sensores() libere novamente
 			liberaControlador = 0;
-			// Bloqueia a execução da função Processo() até que ControladorCliente() libere novamente
-			liberaProcesso = 0;
+			// Bloqueia a execução da função ProcessoPh() até que ControladorCliente() libere novamente
+			liberaProcessoPh = 0;
 
-			mutexHandler.unlock();
-
-			//int tempo_regulagem = ;
-			// Pausa a execução da Thread durante o tempo de regulagem
-			//std::this_thread::sleep_for(std::chrono::seconds(tempo_regulagem));
+			std::this_thread::sleep_for(std::chrono::seconds(tempo_regulagem_ph));
 		}
-		std::this_thread::sleep_for(std::chrono::seconds(15));
 	}
-	std::cout << "Exit Processo!" << std::endl;
+	std::cout << "Exit ProcessoPh!" << std::endl;
+}
+
+void ProcessoNivel() {
+	while (true) {
+		if (liberaProcessoNivel == 1) {
+			int tempo_regulagem_nivel = 10;
+
+			// -> Nível de água *******************************************************
+			if (AtuadorNivel == 1) {
+				mutexHandler.lock();
+				std::cout << "-> Enchendo aquario ate atingir o sensor baixo " << std::endl;
+				mutexHandler.unlock();
+			}
+			else if (AtuadorNivel == 2) {
+				mutexHandler.lock();
+				std::cout << "-> Esvaziando aquario ate atingir o sensor alto " << std::endl;
+				mutexHandler.unlock();
+			}
+
+			// Libera a execução da função Sensores()
+			liberaSensores++;
+			// Bloqueia a execução da função ControladorCliente() até que Sensores() libere novamente
+			liberaControlador = 0;
+			// Bloqueia a execução da função ProcessoNivel() até que ControladorCliente() libere novamente
+			liberaProcessoNivel = 0;
+
+			std::this_thread::sleep_for(std::chrono::seconds(tempo_regulagem_nivel));
+		}
+	}
+	std::cout << "Exit ProcessoNivel!" << std::endl;
 }
 
 // Controladores **********************************************************
@@ -655,20 +720,22 @@ void ControladorCliente() {
 			mutexHandler.lock();
 
 			std::string dados_envio = formataDados();
-			printf("------------ Controlador Cliente ------------ \n");
-			std::cout << "Enviado: " << dados_envio << std::endl;
 
 			// Envia os valores de setpoint e dos sensores para ControladorServer 
 			enviaDados(dados_envio);
 
-			// Bloqueia a execução da função Sensores() até que Processo() libere novamente
+			// Bloqueia a execução da função Sensores até que as funções de Processo liberem novamente
 			liberaSensores = 0;
-			// Bloqueia a execução da função ControladorCliente() até que Sensores() libere novamente
+			// Bloqueia a execução da função ControladorCliente até que Sensores libere novamente
 			liberaControlador = 0;
-			// Libera a execução da função Processo()
-			liberaProcesso = 1;
+			// Libera a execução das funções de Processo
+			liberaProcessoTemp = 1;
+			liberaProcessoOxig = 1;
+			liberaProcessoPh = 1;
+			liberaProcessoNivel = 1;
 
 			printf("--------------------------------------------- \n");
+			printf("---------------- Processando ---------------- \n");
 			mutexHandler.unlock();
 		}
 		std::this_thread::sleep_for(std::chrono::seconds(15));
@@ -691,14 +758,20 @@ int main()
 	std::thread readCommandThread(readCommand, command);
 	std::thread execCommandThread(executeCommand, command, COMMAND_BUFF_SIZE);
 	std::thread SensoresThread(Sensores);
-	std::thread ProcessoThread(Processo);
+	std::thread ProcessoTemperaturaThread(ProcessoTemperatura);
+	std::thread ProcessoOxigenioThread(ProcessoOxigenio);
+	std::thread ProcessoPhThread(ProcessoPh);
+	std::thread ProcessoNivelThread(ProcessoNivel);
 	std::thread ControladorClienteThread(ControladorCliente);
 
 	// Execução das Threads
 	readCommandThread.join();
 	execCommandThread.join();
 	SensoresThread.join();
-	ProcessoThread.join();
+	ProcessoTemperaturaThread.join();
+	ProcessoOxigenioThread.join();
+	ProcessoPhThread.join();
+	ProcessoNivelThread.join();
 	ControladorClienteThread.join();
 
 	appExit();
