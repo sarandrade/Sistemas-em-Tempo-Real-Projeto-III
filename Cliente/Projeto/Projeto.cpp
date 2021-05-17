@@ -32,20 +32,16 @@
 #define DEFAULT_BUFLEN 512
 #define DEFAULT_PORT "27015"
 
-
 // Global Variables *******************************************************
 HANDLE hStdin;
 DWORD fdwSaveOldMode;
 int flagExecuteCommand = 0;
 
-
 SOCKET ConnectSocket = INVALID_SOCKET;
-
 
 char recvbuf[DEFAULT_BUFLEN];
 int iResult;
 int recvbuflen = DEFAULT_BUFLEN;
-
 
 std::mutex mutexHandler;
 
@@ -423,14 +419,14 @@ void executeCommand(char* command, int commandSize)
 	std::cout << "Exit executeCommand!" << std::endl;
 }
 
-// Sensores ***************************************************************
+// Thread Sensores ********************************************************
 /*  Função que simula o funcionamento dos sensores de:
 	1 - Temperatura
 	2 - Oxigênio
 	3 - Ph
 	4 - Nível de água                                   */
 
-void Sensores() {
+void sensores() {
 	while (true) {
 		if (liberaSensores == 4) {
 			mutexHandler.lock();
@@ -497,9 +493,9 @@ void Sensores() {
 	std::cout << "Exit Sensores!" << std::endl;
 }
 
-// Processos **************************************************************
+// Threads Processos ******************************************************
 
-void ProcessoTemperatura() {
+void processoTemperatura() {
 	while (true) {
 		if (liberaProcessoTemp == 1) {
 			int tempo_regulagem_temperatura = 0;
@@ -585,7 +581,7 @@ void ProcessoTemperatura() {
 	std::cout << "Exit ProcessoTemperatura!" << std::endl;
 }
 
-void ProcessoOxigenio() {
+void processoOxigenio() {
 	while (true) {
 		if (liberaProcessoOxig == 1) {
 			int tempo_regulagem_oxigenio = 0;
@@ -638,7 +634,7 @@ void ProcessoOxigenio() {
 	std::cout << "Exit ProcessoOxigenio!" << std::endl;
 }
 
-void ProcessoPh() {
+void processoPh() {
 	while (true) {
 		if (liberaProcessoPh == 1) {
 			int tempo_regulagem_ph = 10;
@@ -682,7 +678,7 @@ void ProcessoPh() {
 	std::cout << "Exit ProcessoPh!" << std::endl;
 }
 
-void ProcessoNivel() {
+void processoNivel() {
 	while (true) {
 		if (liberaProcessoNivel == 1) {
 			int tempo_regulagem_nivel = 10;
@@ -712,9 +708,9 @@ void ProcessoNivel() {
 	std::cout << "Exit ProcessoNivel!" << std::endl;
 }
 
-// Controladores **********************************************************
+// Thread Controlador ******************************************************
 
-void ControladorCliente() {
+void controladorCliente() {
 	while (true) {
 		if (liberaControlador == 1) {
 			mutexHandler.lock();
@@ -748,8 +744,6 @@ int main()
 {
 	char command[COMMAND_BUFF_SIZE] = "";
 
-	printf("+++++++++++++++++++++++++++++++++++++++++++++ \n");
-
 	appSetup();
 
 	configuraConexao();
@@ -757,22 +751,22 @@ int main()
 	// Criação das Threads do sistema
 	std::thread readCommandThread(readCommand, command);
 	std::thread execCommandThread(executeCommand, command, COMMAND_BUFF_SIZE);
-	std::thread SensoresThread(Sensores);
-	std::thread ProcessoTemperaturaThread(ProcessoTemperatura);
-	std::thread ProcessoOxigenioThread(ProcessoOxigenio);
-	std::thread ProcessoPhThread(ProcessoPh);
-	std::thread ProcessoNivelThread(ProcessoNivel);
-	std::thread ControladorClienteThread(ControladorCliente);
+	std::thread sensoresThread(sensores);
+	std::thread processoTemperaturaThread(processoTemperatura);
+	std::thread processoOxigenioThread(processoOxigenio);
+	std::thread processoPhThread(processoPh);
+	std::thread processoNivelThread(processoNivel);
+	std::thread controladorClienteThread(controladorCliente);
 
 	// Execução das Threads
 	readCommandThread.join();
 	execCommandThread.join();
-	SensoresThread.join();
-	ProcessoTemperaturaThread.join();
-	ProcessoOxigenioThread.join();
-	ProcessoPhThread.join();
-	ProcessoNivelThread.join();
-	ControladorClienteThread.join();
+	sensoresThread.join();
+	processoTemperaturaThread.join();
+	processoOxigenioThread.join();
+	processoPhThread.join();
+	processoNivelThread.join();
+	controladorClienteThread.join();
 
 	appExit();
 }
