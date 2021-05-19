@@ -2,7 +2,7 @@
 /*  # Disciplina: Sistemas em Tempo Real
 	# Professor: Danilo Freire de Souza Santos
 	# Aluna: Sara Andrade Dias - 116110719
-	# Projeto: Aquário
+	# Projeto: Automação e Controle em Aquário
 */
 
 #define WIN32_LEAN_AND_MEAN
@@ -115,7 +115,6 @@ void configuraConexao() {
 	iResult = WSAStartup(MAKEWORD(2, 2), &wsaData);
 	if (iResult != 0) {
 		printf("WSAStartup failed with error: %d\n", iResult);
-		//return 1;
 	}
 
 	ZeroMemory(&hints, sizeof(hints));
@@ -128,7 +127,6 @@ void configuraConexao() {
 	if (iResult != 0) {
 		printf("getaddrinfo failed with error: %d\n", iResult);
 		WSACleanup();
-		//return 1;
 	}
 
 	// Attempt to connect to an address until one succeeds
@@ -140,7 +138,6 @@ void configuraConexao() {
 		if (ConnectSocket == INVALID_SOCKET) {
 			printf("socket failed with error: %ld\n", WSAGetLastError());
 			WSACleanup();
-			//return 1;
 		}
 
 		// Connect to server.
@@ -158,7 +155,6 @@ void configuraConexao() {
 	if (ConnectSocket == INVALID_SOCKET) {
 		printf("Unable to connect to server!\n");
 		WSACleanup();
-		//return 1;
 	}
 }
 
@@ -177,12 +173,9 @@ int enviaDados(std::string dados_para_enviar) {
 		return 1;
 	}
 
-	//printf("Bytes Sent: %ld\n", iResult);
-
 	// Receive until the peer closes the connection
 	iResult = recv(ConnectSocket, recvbuf, recvbuflen, 0);
 	if (iResult > 0) {
-		//printf("Bytes received: %d \n", iResult);
 		recvbuf[iResult] = '\0';
 		printf("Recebido: %s \n", recvbuf);
 
@@ -214,7 +207,6 @@ void encerraConexao() {
 		printf("shutdown failed with error: %d\n", WSAGetLastError());
 		closesocket(ConnectSocket);
 		WSACleanup();
-		//return 1;
 	}
 
 	// cleanup
@@ -469,6 +461,7 @@ void sensores() {
 				// A água está acima do nível estabelecido
 				sensorNivel = 2;
 			}
+
 			// Bloqueia a execução da função Sensores até que as funções de Processo liberem novamente
 			liberaSensores = 0;
 			// Libera a execução da função ControladorCliente

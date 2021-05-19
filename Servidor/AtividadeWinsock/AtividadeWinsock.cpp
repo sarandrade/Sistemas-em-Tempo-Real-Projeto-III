@@ -227,7 +227,6 @@ int __cdecl main(void)
     WSADATA wsaData;
     int iResult;
 
-
     struct addrinfo* result = NULL;
     struct addrinfo hints;
 
@@ -283,15 +282,8 @@ int __cdecl main(void)
     }
 
     SOCKET ClientSocket = INVALID_SOCKET;
+    
     // Accept a client socket
-    /*ClientSocket = accept(ListenSocket, NULL, NULL);
-    if (ClientSocket == INVALID_SOCKET) {
-        printf("accept failed with error: %d\n", WSAGetLastError());
-        closesocket(ListenSocket);
-        WSACleanup();
-        return 1;
-    }*/
-
     while ((ClientSocket = accept(ListenSocket, NULL, NULL))) {
         // Create a new thread for the accepted client (also pass the accepted client socket).
         unsigned threadID;
