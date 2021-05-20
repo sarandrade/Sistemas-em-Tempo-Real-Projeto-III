@@ -674,15 +674,47 @@ void processoPh() {
 void processoNivel() {
 	while (true) {
 		if (liberaProcessoNivel == 1) {
-			int tempo_regulagem_nivel = 10;
+			int tempo_regulagem_nivel = 0;
 
 			// -> Nível de água *******************************************************
 			if (AtuadorNivel == 1) {
+				//Contador do tempo
+				int cont_tempo = 0;
+				
+				int sensor_baixo = 0;
+				do
+				{
+					// Considerando que em 5 min (simulando com 5s) o aquecedor pode aumentar a temperatura numa faixa de 2 - 6 °C
+					sensor_baixo = rand() % 2;
+
+					cont_tempo++;
+
+				} while (sensor_baixo == 0);
+
+				// Tempo para atingir temperatura de setpoint
+				tempo_regulagem_nivel = cont_tempo * 5;
+
 				mutexHandler.lock();
 				std::cout << "-> Enchendo aquario ate atingir o sensor baixo " << std::endl;
 				mutexHandler.unlock();
 			}
 			else if (AtuadorNivel == 2) {
+				//Contador do tempo
+				int cont_tempo = 0;
+
+				int sensor_alto = 0;
+				do
+				{
+					// Considerando que em 5 min (simulando com 5s) o aquecedor pode aumentar a temperatura numa faixa de 2 - 6 °C
+					sensor_alto = rand() % 2;
+
+					cont_tempo++;
+
+				} while (sensor_alto == 0);
+
+				// Tempo para atingir temperatura de setpoint
+				tempo_regulagem_nivel = cont_tempo * 5;
+
 				mutexHandler.lock();
 				std::cout << "-> Esvaziando aquario ate atingir o sensor alto " << std::endl;
 				mutexHandler.unlock();
