@@ -76,7 +76,7 @@ void appExit(void);
 // Funções Auxiliares *****************************************************
 
 std::string formataDouble(double variavel_double) {
-	// Função que transforma uma variável double em uma variável string com apenas uma casa decimal
+	// Transforma uma variável double em uma variável string com uma casa decimal
 	std::stringstream stream;
 	stream << std::fixed << std::setprecision(1) << variavel_double;
 	std::string variavel_string = stream.str();
@@ -497,9 +497,9 @@ void processoTemperatura() {
 			if (AtuadorTemperatura == 1) {
 				// Diferença entre temperatura medida e setpoint
 				int diferenca_temp = setpointTemperatura - sensorTemperatura;
-				//Contador do tempo
+				// Contador do tempo
 				int cont_tempo = 0;
-				//Contador do temperatura
+				// Contador do temperatura
 				int cont_temperatura = diferenca_temp;
 
 				do
@@ -530,14 +530,14 @@ void processoTemperatura() {
 			else if (AtuadorTemperatura == 2) {
 				// Diferença entre temperatura medida e setpoint
 				int diferenca_temp = sensorTemperatura - setpointTemperatura;
-				//Contador do tempo
+				// Contador do tempo
 				int cont_tempo = 0;
-				//Contador do temperatura
+				// Contador do temperatura
 				int cont_temperatura = diferenca_temp;
 
 				do
 				{
-					//Considerando que em 5 min (simulando com 5s) o resfriador pode diminuir a temperatura numa faixa de 2 - 4 °C
+					// Considerando que em 5 min (simulando com 5s) o resfriador pode diminuir a temperatura numa faixa de 2 - 4 °C
 					int variacao = rand() % 3 + 2;
 
 					cont_temperatura = cont_temperatura - variacao;

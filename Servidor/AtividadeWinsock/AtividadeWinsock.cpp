@@ -53,13 +53,14 @@ std::string handleMessage(char * recvbuf) {
     std::istringstream(recvbuf_array[6]) >> sensorPh;
     std::istringstream(recvbuf_array[7]) >> sensorNivel;
 
-    // Inicializando e zerando atuadores
+    // Inicialização dos atuadores zerados
     int AtuadorTemperatura = 0;
     int AtuadorOxigenio = 0;
     int AtuadorPh = 0;
     int AtuadorNivel = 0;
 
     // Calculando quais atuadores devem ser acionados
+    
     // -> Temperatura *********************************************************
     if (sensorTemperatura == setpointTemperatura) {
         // Se a temperatura medida for igual ao setpoint...
